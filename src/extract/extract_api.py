@@ -1,22 +1,39 @@
 import json
 from datetime import datetime
 from pathlib import Path
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
 
 import requests
 
 BASE_URL = "https://dummyjson.com"
 PAGE_SIZE = 30
 
+def build_session():
+    """Create an HTTP session that retries rate limits and server errors."""
+    retry = Retry(
+        total=5,
+        backoff_factor=1,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET"],
+        respect_retry_after_header=True,
+    )
+    session = requests.Session()
+    session.mount("https://", HTTPAdapter(max_retries=retry))
+    return session
+
 
 def fetch_all(endpoint):
     """Fetch every record from a paginated DummyJSON endpoint."""
     url = f"{BASE_URL}/{endpoint}"
+    session = build_session()
     skip = 0
     all_records = []
 
     while True:
         params = {"limit": PAGE_SIZE, "skip": skip}
-        response = requests.get(url, params=params, timeout=10)
+        response = session.get(url, params=params, timeout=10)
         response.raise_for_status()
         data = response.json()
 
