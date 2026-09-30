@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pipeline:
+    name: Extract, load, and dbt build
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: pipeline
+          POSTGRES_PASSWORD: pipeline
+          POSTGRES_DB: ecommerce
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pipeline -d ecommerce"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: "5432"
+      DB_NAME: ecommerce
+      DB_USER: pipeline
+      DB_PASSWORD: pipeline
+      PGPASSWORD: pipeline
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Create raw tables
+        run: psql -h 127.0.0.1 -U pipeline -d ecommerce -f sql/01_create_raw_tables.sql
+
+      - name: Extract from API
+        run: python src/extract/extract_api.py
+
+      - name: Load raw data
+        run: python -m src.load.load_raw
+
+      - name: dbt build
+        working-directory: dbt/ecommerce_analytics
+        run: dbt build --profiles-dir .
