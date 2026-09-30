@@ -1,0 +1,25 @@
+version: 2
+
+sources:
+  - name: raw
+    description: Raw JSON records loaded from the DummyJSON API by src/load/load_raw.py
+    schema: raw
+    tables:
+      - name: products
+        columns:
+          - name: id
+            data_tests:
+              - unique
+              - not_null
+      - name: users
+        columns:
+          - name: id
+            data_tests:
+              - unique
+              - not_null
+      - name: carts
+        columns:
+          - name: id
+            data_tests:
+              - unique
+              - not_null
