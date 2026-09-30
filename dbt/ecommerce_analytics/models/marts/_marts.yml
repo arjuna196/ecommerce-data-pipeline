@@ -1,0 +1,58 @@
+version: 2
+
+models:
+  - name: dim_products
+    description: One row per product. Missing brands are labelled 'Unbranded'.
+    columns:
+      - name: product_id
+        data_tests:
+          - unique
+          - not_null
+
+  - name: dim_customers
+    description: One row per customer.
+    columns:
+      - name: customer_id
+        data_tests:
+          - unique
+          - not_null
+
+  - name: fct_orders
+    description: One row per order (cart). Use this for order-level metrics such as average order value.
+    columns:
+      - name: order_id
+        data_tests:
+          - unique
+          - not_null
+      - name: customer_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_customers')
+                field: customer_id
+
+  - name: fct_order_items
+    description: One row per order line. Use this for product and category revenue.
+    columns:
+      - name: order_item_id
+        data_tests:
+          - unique
+          - not_null
+      - name: order_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('fct_orders')
+                field: order_id
+      - name: customer_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_customers')
+                field: customer_id
+      - name: product_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_products')
+                field: product_id
